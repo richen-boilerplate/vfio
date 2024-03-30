@@ -11,14 +11,14 @@ VIRT_CORES='0-15'      # Cores reserved for virtual machine(s)
 VIRT_CORES_MASK=0FFF   # bitmask 0b00001111111111111111
 
 shield_vm() {
-    cset set -c $TOTAL_CORES -s machine.slice
-    # Shield two cores cores for host and rest for VM(s)
-    cset shield --kthread on --cpu $VIRT_CORES
+	cset set -c $TOTAL_CORES -s machine.slice
+	# Shield two cores cores for host and rest for VM(s)
+	cset shield --kthread on --cpu $VIRT_CORES
 }
 
 unshield_vm() {
-    echo $TOTAL_CORES_MASK >/sys/bus/workqueue/devices/writeback/cpumask
-    cset shield --reset
+	echo $TOTAL_CORES_MASK >/sys/bus/workqueue/devices/writeback/cpumask
+	cset shield --reset
 }
 
 echo "$date - win11/release/end: allocating cpu to host" >>/home/richard/Development/vfio/main.log
@@ -35,3 +35,11 @@ unshield_vm
 echo powersave | tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
 echo 1 >/sys/bus/workqueue/devices/writeback/numa
 echo >&2 "VMs UnShielded"
+
+sudo virsh nodedev-reattach pci_0000_01_00_0 &&
+	echo "GPU reattached (now host ready)" &&
+	sudo modprobe -r vfio_pci vfio_pci_core vfio_iommu_type1 &&
+	echo "VFIO drivers removed" &&
+	sudo modprobe -i nvidia_drm nvidia_modeset nvidia_uvm nvidia &&
+	echo "NVIDIA drivers added" &&
+	echo "COMPLETED!"
